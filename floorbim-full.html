@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FloorBIM — 2D Floorplan to 3D BIM</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0f0e0c;
+  --paper: #f5f2ec;
+  --cream: #ede9df;
+  --rule: #d4cfc4;
+  --blue: #1a3d6b; --blue-l: #d4e2f4; --blue-m: #85b7eb;
+  --purple: #3b2f7a; --purple-l: #e8e4f8; --purple-m: #afa9ec;
+  --teal: #0d5c47; --teal-l: #d4ede7; --teal-m: #5dcaa5;
+  --amber: #7a4a0a; --amber-l: #faecd4; --amber-m: #ef9f27;
+  --coral: #8a2e14; --coral-l: #f5ddd6; --coral-m: #f0997b;
+  --gray: #6b6860;
+  --mono: 'DM Mono', monospace;
+  --serif: 'DM Serif Display', serif;
+  --sans: 'DM Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;overflow-x:hidden}
+
+/* ─── NAV ─── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:56px}
+.nav-logo{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.06em;color:var(--ink);text-decoration:none}
+.nav-cta{font-size:12px;font-weight:500;background:var(--ink);color:var(--paper);padding:7px 18px;border-radius:2px;text-decoration:none;letter-spacing:.02em}
+
+/* ─── TAB BAR ─── */
+.tab-bar{position:fixed;top:56px;left:0;right:0;z-index:190;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;padding:0 48px;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:0 24px;height:44px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .2s,border-color .2s}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--ink)}
+.tab-num{font-size:9px;margin-right:6px;opacity:.5}
+
+/* ─── TAB CONTENT ─── */
+.tab-page{display:none;padding-top:100px;min-height:100vh}
+.tab-page.active{display:block}
+.wrap{max-width:1160px;margin:0 auto;padding:0 48px 100px}
+
+/* ─── SECTION ATOMS ─── */
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.eyebrow::after{content:'';height:1px;width:48px;background:var(--rule)}
+h1{font-family:var(--serif);font-size:clamp(40px,5vw,68px);line-height:1.05;letter-spacing:-.02em;margin-bottom:22px}
+h1 em{font-style:italic;color:var(--blue)}
+h2{font-family:var(--serif);font-size:clamp(28px,3.5vw,46px);line-height:1.1;letter-spacing:-.02em;margin-bottom:14px}
+.lead{font-size:17px;font-weight:300;color:var(--gray);line-height:1.65;max-width:560px;margin-bottom:52px}
+.divider{height:1px;background:var(--rule);margin:56px 0}
+
+/* ─── HERO ─── */
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;padding:32px 0 64px}
+.hero-actions{display:flex;gap:16px;align-items:center;margin-top:36px}
+.btn-primary{background:var(--ink);color:var(--paper);padding:13px 26px;border-radius:2px;font-size:13px;font-weight:500;text-decoration:none;letter-spacing:.02em;display:inline-block;cursor:pointer;border:none;transition:opacity .2s}
+.btn-primary:hover{opacity:.8}
+.btn-ghost{color:var(--gray);font-size:13px;text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px;transition:color .2s,border-color .2s;cursor:pointer;background:none;border-left:none;border-top:none;border-right:none}
+.btn-ghost:hover{color:var(--ink);border-bottom-color:var(--ink)}
+
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:8px}
+.stat-box{background:var(--paper);padding:24px 20px}
+.stat-val{font-family:var(--serif);font-size:32px;margin-bottom:4px}
+.stat-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray)}
+
+/* ─── WHY CARDS ─── */
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.why-card{background:var(--paper);padding:32px 28px;transition:background .2s}
+.why-card:hover{background:var(--cream)}
+.why-n{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:14px}
+.why-title{font-family:var(--serif);font-size:20px;line-height:1.2;margin-bottom:10px}
+.why-desc{font-size:13px;font-weight:300;color:var(--gray);line-height:1.65}
+.why-big{margin-top:18px;padding-top:18px;border-top:1px solid var(--rule);font-family:var(--serif);font-size:26px}
+.why-big span{font-family:var(--sans);font-size:11px;color:var(--gray);display:block;margin-top:2px;font-weight:300}
+
+/* ─── PIPELINE ─── */
+.pipeline{border:1px solid var(--rule)}
+.pipe-step{display:grid;grid-template-columns:56px 1fr 240px;border-bottom:1px solid var(--rule);transition:background .2s;cursor:default}
+.pipe-step:last-child{border-bottom:none}
+.pipe-step:hover{background:var(--cream)}
+.pipe-step.s-blue{border-left:3px solid var(--blue)}
+.pipe-step.s-purple{border-left:3px solid var(--purple)}
+.pipe-step.s-amber{border-left:3px solid var(--amber)}
+.pipe-step.s-coral{border-left:3px solid var(--coral)}
+.pipe-step.s-teal{border-left:3px solid var(--teal)}
+.ps-n{padding:24px 16px;border-right:1px solid var(--rule);font-family:var(--mono);font-size:18px;font-weight:500;color:var(--gray);display:flex;align-items:flex-start}
+.ps-main{padding:24px 28px;border-right:1px solid var(--rule)}
+.ps-title{font-family:var(--serif);font-size:19px;margin-bottom:6px}
+.ps-desc{font-size:13px;font-weight:300;color:var(--gray);line-height:1.6}
+.ps-badge{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:2px}
+.badge-diff{background:var(--teal-l);color:var(--teal)}
+.badge-moat{background:var(--blue-l);color:var(--blue)}
+.ps-tech{padding:24px}
+.ps-tech-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:2px;background:var(--cream);color:var(--gray);border:1px solid var(--rule)}
+
+/* ─── COMPARE TABLE ─── */
+.ctable{width:100%;border-collapse:collapse}
+.ctable th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);padding:10px 16px;text-align:left;border-bottom:2px solid var(--ink)}
+.ctable td{padding:14px 16px;font-size:13px;border-bottom:1px solid var(--rule);vertical-align:top}
+.ctable tr:hover td{background:var(--cream)}
+.ctable tr.us td{background:var(--blue-l)}
+.ctable tr.us td:first-child{font-weight:500;color:var(--blue)}
+.ck{color:var(--teal)} .cx{color:var(--coral)} .cp{color:var(--amber)}
+
+/* ─── ARCH DIAGRAMS TAB ─── */
+.arch-tab-inner{display:grid;grid-template-columns:1fr 340px;gap:32px;align-items:start}
+.diag-selector{display:flex;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:28px}
+.diag-btn{flex:1;padding:10px 16px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;background:var(--paper);border:none;cursor:pointer;color:var(--gray);transition:all .15s;text-align:center}
+.diag-btn:hover{color:var(--ink);background:var(--cream)}
+.diag-btn.active{background:var(--ink);color:var(--paper)}
+
+.diag-panel{display:none}
+.diag-panel.active{display:block}
+
+/* SVG diagram styles */
+.arch-svg{width:100%;height:auto;border:1px solid var(--rule);border-radius:2px;background:var(--paper)}
+.arch-svg .node-g{cursor:pointer}
+.arch-svg .node-g:hover rect,.arch-svg .node-g:hover .nr{opacity:.85}
+
+/* Detail panel */
+.detail-panel{position:sticky;top:116px;border:1px solid var(--rule);border-radius:2px;background:var(--paper);overflow:hidden;transition:all .3s}
+.detail-header{padding:20px 22px;border-bottom:1px solid var(--rule);background:var(--cream)}
+.detail-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:6px}
+.detail-title{font-family:var(--serif);font-size:22px;line-height:1.15}
+.detail-body{padding:22px}
+.detail-desc{font-size:13px;font-weight:300;color:var(--gray);line-height:1.7;margin-bottom:18px}
+.detail-section-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:8px;margin-top:18px}
+.detail-items{list-style:none}
+.detail-items li{font-size:12px;color:var(--gray);padding:5px 0;border-bottom:1px solid var(--rule);display:flex;gap:8px;line-height:1.5}
+.detail-items li::before{content:'—';color:var(--rule);flex-shrink:0}
+.detail-items li:last-child{border-bottom:none}
+.detail-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.detail-placeholder{padding:60px 22px;text-align:center;color:var(--gray)}
+.detail-placeholder .dp-icon{font-family:var(--mono);font-size:32px;opacity:.2;margin-bottom:12px}
+.detail-placeholder p{font-size:13px;font-weight:300}
+
+/* ROADMAP */
+.rm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule)}
+.rm-phase{padding:28px 24px;border-right:1px solid var(--rule)}
+.rm-phase:last-child{border-right:none}
+.rm-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:8px}
+.rm-title{font-family:var(--serif);font-size:18px;margin-bottom:18px;line-height:1.2}
+.rm-list{list-style:none}
+.rm-list li{font-size:12px;font-weight:300;color:var(--gray);line-height:1.6;padding:5px 0;border-bottom:1px solid var(--rule);display:flex;gap:7px}
+.rm-list li::before{content:'—';color:var(--rule);flex-shrink:0}
+.rm-list li:last-child{border-bottom:none}
+
+/* TEAM */
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.team-card{padding:26px;border:1px solid var(--rule);border-radius:2px;transition:background .2s}
+.team-card:hover{background:var(--cream)}
+.team-role{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:8px}
+.team-title{font-family:var(--serif);font-size:18px;margin-bottom:8px}
+.team-desc{font-size:13px;font-weight:300;color:var(--gray);line-height:1.6}
+
+/* CTA STRIP */
+.cta-strip{background:var(--ink);color:var(--paper);padding:80px 48px;text-align:center;margin-top:80px}
+.cta-strip h2{font-family:var(--serif);font-size:42px;margin-bottom:16px}
+.cta-strip p{font-size:16px;font-weight:300;color:#aaa;margin-bottom:40px}
+.btn-inv{display:inline-block;background:var(--paper);color:var(--ink);padding:13px 28px;border-radius:2px;font-size:13px;font-weight:500;text-decoration:none;margin:0 8px;transition:opacity .2s}
+.btn-inv:hover{opacity:.85}
+.btn-out{display:inline-block;border:1px solid #555;color:var(--paper);padding:13px 28px;border-radius:2px;font-size:13px;text-decoration:none;margin:0 8px;transition:border-color .2s}
+.btn-out:hover{border-color:var(--paper)}
+
+footer{padding:36px 48px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--gray)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeUp .5s ease both}
+.fd1{animation-delay:.08s}.fd2{animation-delay:.18s}.fd3{animation-delay:.28s}.fd4{animation-delay:.38s}
+
+@media(max-width:900px){
+  nav,.tab-bar{padding:0 16px}
+  .wrap{padding:0 16px 80px}
+  .hero-grid,.why-grid,.team-grid{grid-template-columns:1fr}
+  .rm-grid{grid-template-columns:1fr 1fr}
+  .pipe-step{grid-template-columns:44px 1fr}
+  .ps-tech{display:none}
+  .arch-tab-inner{grid-template-columns:1fr}
+  .detail-panel{position:static}
+  footer{flex-direction:column;gap:8px;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo" onclick="switchTab('vision');return false">FLOORBIM</a>
+  <a href="#" class="nav-cta" onclick="switchTab('vision');document.getElementById('cta-anchor').scrollIntoView({behavior:'smooth'});return false">Request pilot</a>
+</nav>
+
+<!-- TAB BAR -->
+<div class="tab-bar" id="tabBar">
+  <button class="tab-btn active" data-tab="vision" onclick="switchTab('vision')"><span class="tab-num">01</span>Vision</button>
+  <button class="tab-btn" data-tab="pipeline" onclick="switchTab('pipeline')"><span class="tab-num">02</span>Pipeline</button>
+  <button class="tab-btn" data-tab="architecture" onclick="switchTab('architecture')"><span class="tab-num">03</span>Architecture</button>
+  <button class="tab-btn" data-tab="strategy" onclick="switchTab('strategy')"><span class="tab-num">04</span>Strategy</button>
+  <button class="tab-btn" data-tab="team" onclick="switchTab('team')"><span class="tab-num">05</span>Team & Roadmap</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1 — VISION
+═══════════════════════════════════════════════ -->
+<div class="tab-page active" id="tab-vision">
+<div class="wrap">
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow fade fd1">Wedge strategy · Residential BIM</div>
+      <h1 class="fade fd2">From <em>2D plan</em> to construction-grade BIM in minutes</h1>
+      <p class="lead fade fd3">AI-powered conversion of residential floorplans into IFC-compliant 3D BIM models. Built for architects, developers, and contractors who need build-ready models — not just pretty visuals.</p>
+      <div class="hero-actions fade fd4">
+        <button class="btn-primary" onclick="switchTab('pipeline')">See the pipeline →</button>
+        <button class="btn-ghost" onclick="switchTab('architecture')">View architecture</button>
+      </div>
+    </div>
+    <div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val">≥80%</div><div class="stat-label">Detection accuracy</div></div>
+        <div class="stat-box"><div class="stat-val">IFC 4</div><div class="stat-label">ISO 16739 standard</div></div>
+        <div class="stat-box"><div class="stat-val">&lt;5 min</div><div class="stat-label">Per plan, cloud GPU</div></div>
+        <div class="stat-box"><div class="stat-val">HIL</div><div class="stat-label">Human-in-the-loop</div></div>
+        <div class="stat-box"><div class="stat-val">6</div><div class="stat-label">Pipeline stages</div></div>
+        <div class="stat-box"><div class="stat-val">↻</div><div class="stat-label">Data flywheel</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="eyebrow">Why now</div>
+  <h2>A market gap that compounds with time</h2>
+  <p class="lead">Manual BIM modeling is the largest hidden cost in residential construction. No one has solved the residential wedge yet — and the regulatory tailwind is just beginning.</p>
+
+  <div class="why-grid">
+    <div class="why-card">
+      <div class="why-n">01 / Pain</div>
+      <div class="why-title">Days of drafting per project</div>
+      <div class="why-desc">Manual BIM modeling costs architecture firms 2–5 days per residential project. Multiply across thousands of projects and the wasted labor is in the billions.</div>
+      <div class="why-big">$910B<span>US residential construction spend, 2022</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">02 / Timing</div>
+      <div class="why-title">CV models finally good enough</div>
+      <div class="why-desc">Transformer-based document understanding has only recently reached the accuracy needed for production-grade floorplan parsing. The viable build window is open right now.</div>
+      <div class="why-big">2024–26<span>The viable build window</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">03 / Tailwind</div>
+      <div class="why-title">IFC mandates growing globally</div>
+      <div class="why-desc">Government projects in the EU, UK, and increasingly the US require BIM by law. ISO 19650 adoption is accelerating. Every new mandate expands our TAM automatically.</div>
+      <div class="why-big">30+<span>Countries with ISO 19650 mandates</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">04 / Gap</div>
+      <div class="why-title">No one owns residential</div>
+      <div class="why-desc">Autodesk is too large for small firms. BIMxAI has accuracy but no validation. Consumer tools produce visuals, not construction models. The residential wedge is unclaimed.</div>
+      <div class="why-big">0<span>Competitors with IFC + QA + residential focus</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">05 / Moat</div>
+      <div class="why-title">Data flywheel compounds</div>
+      <div class="why-desc">Every correction a user makes improves the ML model. The longer we're in market, the more training data we accumulate — and the harder the moat becomes to replicate.</div>
+      <div class="why-big">↻<span>Self-reinforcing accuracy loop</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">06 / Segment</div>
+      <div class="why-title">Renovation is a second beach</div>
+      <div class="why-desc">Contractors retrofitting existing buildings need BIM of as-built structures that exist only on paper or PDF. Ingesting scanned legacy plans opens an entirely separate market.</div>
+      <div class="why-big">As-built<span>Legacy plans with no digital BIM</span></div>
+    </div>
+  </div>
+
+  <div id="cta-anchor"></div>
+</div>
+<div class="cta-strip">
+  <h2>Ready to run a pilot?</h2>
+  <p>First three models are free. We're recruiting architecture firms and residential developers now.</p>
+  <a href="mailto:hello@floorbim.ai" class="btn-inv">Request pilot access</a>
+  <button class="btn-out" onclick="switchTab('pipeline')">See the pipeline</button>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 2 — PIPELINE
+═══════════════════════════════════════════════ -->
+<div class="tab-page" id="tab-pipeline">
+<div class="wrap">
+  <div class="eyebrow fade fd1">Core product</div>
+  <h2 class="fade fd2">Six stages. One IFC model.</h2>
+  <p class="lead fade fd3">A strictly sequential pipeline where each stage has one input and one output contract — making every component independently testable, replaceable, and improvable.</p>
+
+  <div class="pipeline">
+    <div class="pipe-step s-blue">
+      <div class="ps-n">01</div>
+      <div class="ps-main">
+        <div class="ps-title">Universal plan ingestion</div>
+        <div class="ps-desc">Accepts PDF, JPEG/PNG, DWG, and scanned hand-drawn plans. Auto-deskews, detects scale bars, normalizes orientation, and segments multi-page documents — no user intervention required.</div>
+        <span class="ps-badge badge-diff">Differentiator</span>
+      </div>
+      <div class="ps-tech">
+        <div class="ps-tech-label">Stack</div>
+        <div class="chips"><span class="chip">OpenCV</span><span class="chip">pdf2image</span><span class="chip">ezdxf</span><span class="chip">FastAPI</span><span class="chip">S3/GCS</span></div>
+      </div>
+    </div>
+    <div class="pipe-step s-purple">
+      <div class="ps-n">02</div>
+      <div class="ps-main">
+        <div class="ps-title">Semantic element detection</div>
+        <div class="ps-desc">CNN-based wall and opening detector classifies elements with type metadata — load-bearing vs partition, door swing, window sill. Builds a scene graph of rooms and adjacency, not just raw shapes.</div>
+      </div>
+      <div class="ps-tech">
+        <div class="ps-tech-label">Stack</div>
+        <div class="chips"><span class="chip">PyTorch</span><span class="chip">Mask R-CNN</span><span class="chip">DETR</span><span class="chip">SegFormer</span><span class="chip">NetworkX</span></div>
+      </div>
+    </div>
+    <div class="pipe-step s-purple">
+      <div class="ps-n">03</div>
+      <div class="ps-main">
+        <div class="ps-title">Height + story inference</div>
+        <div class="ps-desc">Derives full 3D geometry from 2D data automatically using topology analysis and residential height tables. Detects stairs, stacks multi-story plans, generates wall extrusions with per-element confidence scores.</div>
+        <span class="ps-badge badge-diff">Differentiator</span>
+      </div>
+      <div class="ps-tech">
+        <div class="ps-tech-label">Stack</div>
+        <div class="chips"><span class="chip">Shapely</span><span class="chip">CGAL</span><span class="chip">Height LUT</span><span class="chip">Python</span></div>
+      </div>
+    </div>
+    <div class="pipe-step s-amber">
+      <div class="ps-n">04</div>
+      <div class="ps-main">
+        <div class="ps-title">Construction-grade IFC export</div>
+        <div class="ps-desc">Maps geometry to ISO 16739 IFC 4 schema with proper classification — IfcWallStandardCase, IfcSlab, relationship sets. Output drops cleanly into Revit or ArchiCAD without reclassification. Also exports RVT, DXF, OBJ, and QTO CSV.</div>
+        <span class="ps-badge badge-moat">Core moat</span>
+      </div>
+      <div class="ps-tech">
+        <div class="ps-tech-label">Stack</div>
+        <div class="chips"><span class="chip">IfcOpenShell</span><span class="chip">Revit API</span><span class="chip">ISO 16739</span><span class="chip">Speckle</span></div>
+      </div>
+    </div>
+    <div class="pipe-step s-coral">
+      <div class="ps-n">05</div>
+      <div class="ps-main">
+        <div class="ps-title">Automated QA validation</div>
+        <div class="ps-desc">Catches geometry errors before the model reaches any downstream tool. Runs collision detection, closed-loop room verification, door clearance tests, and topology consistency checks — producing a flagged issue report.</div>
+        <span class="ps-badge badge-diff">Differentiator</span>
+      </div>
+      <div class="ps-tech">
+        <div class="ps-tech-label">Stack</div>
+        <div class="chips"><span class="chip">Rust</span><span class="chip">Topology engine</span><span class="chip">IFC validator</span></div>
+      </div>
+    </div>
+    <div class="pipe-step s-teal">
+      <div class="ps-n">06</div>
+      <div class="ps-main">
+        <div class="ps-title">Human-in-the-loop editor</div>
+        <div class="ps-desc">AI proposes the full model in seconds. Expert finalizes it in a 2D/3D side-by-side canvas. Every correction logs to the training store and feeds the ML retraining pipeline — compounding accuracy over time.</div>
+        <span class="ps-badge badge-diff">Data flywheel</span>
+      </div>
+      <div class="ps-tech">
+        <div class="ps-tech-label">Stack</div>
+        <div class="chips"><span class="chip">Three.js</span><span class="chip">React</span><span class="chip">WebGL</span><span class="chip">PostgreSQL</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="eyebrow">Competitive landscape</div>
+  <h2>Where everyone else stops short</h2>
+  <p class="lead">The gap isn't 3D conversion — it's construction-grade fidelity, QA validation, and IFC compliance that professionals can actually use downstream.</p>
+
+  <table class="ctable">
+    <thead>
+      <tr>
+        <th>Product</th><th>DWG input</th><th>Scanned plans</th><th>IFC export</th><th>QA validation</th><th>Height inference</th><th>Focus</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="us"><td>FloorBIM (us)</td><td><span class="ck">✓</span></td><td><span class="ck">✓</span></td><td><span class="ck">✓ IFC 4</span></td><td><span class="ck">✓</span></td><td><span class="ck">✓ auto</span></td><td>Residential BIM</td></tr>
+      <tr><td>BIMxAI</td><td><span class="ck">✓</span></td><td><span class="cx">✗</span></td><td><span class="cp">~ partial</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td>Arch. workflows</td></tr>
+      <tr><td>ArchionLabs</td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td><span class="cp">~ DWG/RVT</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td>Concept design</td></tr>
+      <tr><td>Autodesk Revit</td><td><span class="ck">✓</span></td><td><span class="cx">✗</span></td><td><span class="ck">✓</span></td><td><span class="cp">~ manual</span></td><td><span class="cx">✗ manual</span></td><td>Enterprise AEC</td></tr>
+      <tr><td>Planner 5D</td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td>Consumer 3D</td></tr>
+      <tr><td>Ritn3D</td><td><span class="cx">✗</span></td><td><span class="cp">~</span></td><td><span class="cx">✗ GLB only</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td>Visualization</td></tr>
+      <tr><td>TestFit</td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td><span class="cp">~</span></td><td><span class="cx">✗</span></td><td><span class="cx">✗</span></td><td>Site feasibility</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 3 — ARCHITECTURE (interactive diagrams)
+═══════════════════════════════════════════════ -->
+<div class="tab-page" id="tab-architecture">
+<div class="wrap">
+  <div class="eyebrow fade fd1">Technical architecture</div>
+  <h2 class="fade fd2">Three views of the same system</h2>
+  <p class="lead fade fd3">Click any node in the diagrams to see detailed specs, tech choices, and rationale in the panel on the right.</p>
+
+  <div class="diag-selector">
+    <button class="diag-btn active" onclick="switchDiag('d1')">Diagram 1 — Pipeline flow</button>
+    <button class="diag-btn" onclick="switchDiag('d2')">Diagram 2 — ML engine internals</button>
+    <button class="diag-btn" onclick="switchDiag('d3')">Diagram 3 — Infrastructure</button>
+  </div>
+
+  <div class="arch-tab-inner">
+    <div>
+      <!-- DIAGRAM 1 -->
+      <div class="diag-panel active" id="diag-d1">
+        <svg class="arch-svg" viewBox="0 0 640 600" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+          </defs>
+          <!-- Client -->
+          <g class="node-g" onclick="showDetail('client')">
+            <rect x="20" y="16" width="600" height="52" rx="8" fill="#ede9df" stroke="#d4cfc4" stroke-width="0.5"/>
+            <text x="320" y="38" text-anchor="middle" font-family="'DM Mono',monospace" font-size="11" fill="#6b6860" letter-spacing="1">CLIENT LAYER</text>
+            <text x="320" y="56" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#6b6860">Web app · REST API · Revit plugin</text>
+          </g>
+          <line x1="320" y1="68" x2="320" y2="88" stroke="#d4cfc4" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+          <!-- S1 -->
+          <g class="node-g" onclick="showDetail('s1')">
+            <rect x="20" y="88" width="600" height="62" rx="8" fill="#d4e2f4" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="320" y="112" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#1a3d6b" letter-spacing="1" font-weight="500">S1 — INGESTION</text>
+            <text x="320" y="132" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#1a3d6b">Deskew · scale detect · format normalize · PDF/DWG/JPEG/PNG</text>
+          </g>
+          <line x1="320" y1="150" x2="320" y2="170" stroke="#85b7eb" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+          <!-- S2 -->
+          <g class="node-g" onclick="showDetail('s2')">
+            <rect x="20" y="170" width="600" height="62" rx="8" fill="#e8e4f8" stroke="#afa9ec" stroke-width="0.5"/>
+            <text x="320" y="194" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" letter-spacing="1" font-weight="500">S2 — SEMANTIC DETECTION</text>
+            <text x="320" y="214" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#3b2f7a">CNN wall/opening detector · scene graph builder · room topology</text>
+          </g>
+          <line x1="320" y1="232" x2="320" y2="252" stroke="#afa9ec" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+          <!-- S3 -->
+          <g class="node-g" onclick="showDetail('s3')">
+            <rect x="20" y="252" width="600" height="62" rx="8" fill="#e8e4f8" stroke="#afa9ec" stroke-width="0.5"/>
+            <text x="320" y="276" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" letter-spacing="1" font-weight="500">S3 — HEIGHT + GEOMETRY</text>
+            <text x="320" y="296" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#3b2f7a">Topology analyser · story stacker · wall extruder · slab generator</text>
+          </g>
+          <line x1="320" y1="314" x2="320" y2="334" stroke="#afa9ec" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+          <!-- S4 -->
+          <g class="node-g" onclick="showDetail('s4')">
+            <rect x="20" y="334" width="600" height="62" rx="8" fill="#faecd4" stroke="#ef9f27" stroke-width="0.5"/>
+            <text x="320" y="358" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#7a4a0a" letter-spacing="1" font-weight="500">S4 — IFC SCHEMA MAPPER</text>
+            <text x="320" y="378" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#7a4a0a">ISO 16739 · IfcWallStandardCase · relationship sets · Revit API</text>
+          </g>
+          <line x1="320" y1="396" x2="320" y2="416" stroke="#ef9f27" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+          <!-- S5 -->
+          <g class="node-g" onclick="showDetail('s5')">
+            <rect x="20" y="416" width="600" height="62" rx="8" fill="#f5ddd6" stroke="#f0997b" stroke-width="0.5"/>
+            <text x="320" y="440" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#8a2e14" letter-spacing="1" font-weight="500">S5 — QA VALIDATION ENGINE</text>
+            <text x="320" y="460" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#8a2e14">Collision check · closed-loop verify · topology audit · issue report</text>
+          </g>
+          <line x1="320" y1="478" x2="320" y2="498" stroke="#f0997b" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+          <!-- S6 -->
+          <g class="node-g" onclick="showDetail('s6')">
+            <rect x="20" y="498" width="600" height="62" rx="8" fill="#d4ede7" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="320" y="522" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" letter-spacing="1" font-weight="500">S6 — HUMAN-IN-THE-LOOP EDITOR</text>
+            <text x="320" y="542" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#0d5c47">2D/3D canvas · element editor · correction logger · IFC export</text>
+          </g>
+          <!-- Correction loop arrow -->
+          <path d="M20 529 L6 529 L6 200 L20 200" fill="none" stroke="#5dcaa5" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+          <text x="3" y="367" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" fill="#0d5c47" transform="rotate(-90 3 367)">↻ correction loop</text>
+        </svg>
+      </div>
+
+      <!-- DIAGRAM 2 -->
+      <div class="diag-panel" id="diag-d2">
+        <svg class="arch-svg" viewBox="0 0 640 560" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+          </defs>
+          <!-- CV detection container -->
+          <rect x="16" y="16" width="608" height="170" rx="10" fill="#e8e4f8" stroke="#afa9ec" stroke-width="0.5"/>
+          <text x="32" y="40" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" letter-spacing="1" font-weight="500">CV DETECTION SUBSYSTEM</text>
+          <!-- Wall detector -->
+          <g class="node-g" onclick="showDetail('wall-detector')">
+            <rect x="30" y="54" width="174" height="112" rx="6" fill="#d4e2f4" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="117" y="78" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#1a3d6b" font-weight="500">WALL DETECTOR</text>
+            <text x="117" y="98" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">ResNet-50 backbone</text>
+            <text x="117" y="114" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">Mask R-CNN head</text>
+            <text x="117" y="130" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">→ wall polygons</text>
+            <text x="117" y="148" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#85b7eb">~87% recall</text>
+          </g>
+          <!-- Opening detector -->
+          <g class="node-g" onclick="showDetail('opening-detector')">
+            <rect x="228" y="54" width="174" height="112" rx="6" fill="#d4e2f4" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="315" y="78" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#1a3d6b" font-weight="500">OPENING DETECTOR</text>
+            <text x="315" y="98" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">DETR transformer</text>
+            <text x="315" y="114" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">Bbox + type class</text>
+            <text x="315" y="130" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">→ door/window rects</text>
+            <text x="315" y="148" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#85b7eb">doors + windows</text>
+          </g>
+          <!-- Room segmenter -->
+          <g class="node-g" onclick="showDetail('room-segmenter')">
+            <rect x="426" y="54" width="182" height="112" rx="6" fill="#d4e2f4" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="517" y="78" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#1a3d6b" font-weight="500">ROOM SEGMENTER</text>
+            <text x="517" y="98" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">SegFormer semantic seg</text>
+            <text x="517" y="114" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">Flood-fill boundary</text>
+            <text x="517" y="130" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">→ room polygons</text>
+            <text x="517" y="148" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#85b7eb">scene graph build</text>
+          </g>
+          <line x1="320" y1="186" x2="320" y2="210" stroke="#afa9ec" stroke-width="1" marker-end="url(#arr2)" fill="none"/>
+          <!-- Scene graph container -->
+          <rect x="16" y="210" width="608" height="150" rx="10" fill="#ede9df" stroke="#d4cfc4" stroke-width="0.5"/>
+          <text x="32" y="234" font-family="'DM Mono',monospace" font-size="10" fill="#6b6860" letter-spacing="1" font-weight="500">SCENE GRAPH REASONING</text>
+          <g class="node-g" onclick="showDetail('graph-builder')">
+            <rect x="30" y="248" width="186" height="90" rx="6" fill="#f5f2ec" stroke="#d4cfc4" stroke-width="0.5"/>
+            <text x="123" y="272" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#6b6860" font-weight="500">GRAPH BUILDER</text>
+            <text x="123" y="292" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">Rooms as nodes</text>
+            <text x="123" y="308" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">Walls as typed edges</text>
+          </g>
+          <g class="node-g" onclick="showDetail('topology-analyser')">
+            <rect x="234" y="248" width="186" height="90" rx="6" fill="#f5f2ec" stroke="#d4cfc4" stroke-width="0.5"/>
+            <text x="327" y="272" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#6b6860" font-weight="500">TOPOLOGY ANALYSER</text>
+            <text x="327" y="292" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">Height lookup table</text>
+            <text x="327" y="308" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">Story delta resolver</text>
+          </g>
+          <g class="node-g" onclick="showDetail('wall-classifier')">
+            <rect x="438" y="248" width="170" height="90" rx="6" fill="#f5f2ec" stroke="#d4cfc4" stroke-width="0.5"/>
+            <text x="523" y="272" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#6b6860" font-weight="500">WALL CLASSIFIER</text>
+            <text x="523" y="292" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">Load-bearing flag</text>
+            <text x="523" y="308" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">Material inference</text>
+          </g>
+          <line x1="320" y1="360" x2="320" y2="384" stroke="#d4cfc4" stroke-width="1" marker-end="url(#arr2)" fill="none"/>
+          <!-- 3D geometry container -->
+          <rect x="16" y="384" width="608" height="152" rx="10" fill="#d4ede7" stroke="#5dcaa5" stroke-width="0.5"/>
+          <text x="32" y="408" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" letter-spacing="1" font-weight="500">3D GEOMETRY CONSTRUCTION</text>
+          <g class="node-g" onclick="showDetail('wall-extruder')">
+            <rect x="30" y="420" width="174" height="98" rx="6" fill="#f5f2ec" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="117" y="444" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" font-weight="500">WALL EXTRUDER</text>
+            <text x="117" y="464" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">Polygon → solid</text>
+            <text x="117" y="480" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">IfcExtrudedAreaSolid</text>
+            <text x="117" y="500" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#5dcaa5">Shapely + CGAL</text>
+          </g>
+          <g class="node-g" onclick="showDetail('slab-generator')">
+            <rect x="228" y="420" width="174" height="98" rx="6" fill="#f5f2ec" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="315" y="444" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" font-weight="500">SLAB GENERATOR</text>
+            <text x="315" y="464" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">Room → floor plate</text>
+            <text x="315" y="480" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">IfcSlab typed</text>
+            <text x="315" y="500" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#5dcaa5">Per story level</text>
+          </g>
+          <g class="node-g" onclick="showDetail('ifc-writer')">
+            <rect x="426" y="420" width="182" height="98" rx="6" fill="#f5f2ec" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="517" y="444" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" font-weight="500">IFC WRITER</text>
+            <text x="517" y="464" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">ifcopenshell · ISO 16739</text>
+            <text x="517" y="480" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">Relationship sets</text>
+            <text x="517" y="500" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#5dcaa5">RVT · DXF · OBJ</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- DIAGRAM 3 -->
+      <div class="diag-panel" id="diag-d3">
+        <svg class="arch-svg" viewBox="0 0 640 560" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+          </defs>
+          <g class="node-g" onclick="showDetail('api-gateway')">
+            <rect x="16" y="16" width="608" height="56" rx="8" fill="#ede9df" stroke="#d4cfc4" stroke-width="0.5"/>
+            <text x="320" y="38" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#6b6860" letter-spacing="1" font-weight="500">API GATEWAY + AUTH</text>
+            <text x="320" y="56" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#6b6860">REST / GraphQL · JWT · rate limiting · multipart upload</text>
+          </g>
+          <line x1="192" y1="72" x2="192" y2="96" stroke="#d4cfc4" stroke-width="1" marker-end="url(#arr3)" fill="none"/>
+          <line x1="448" y1="72" x2="448" y2="96" stroke="#d4cfc4" stroke-width="1" marker-end="url(#arr3)" fill="none"/>
+          <g class="node-g" onclick="showDetail('job-queue')">
+            <rect x="16" y="96" width="296" height="66" rx="8" fill="#d4e2f4" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="164" y="120" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#1a3d6b" font-weight="500">ASYNC JOB QUEUE</text>
+            <text x="164" y="150" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">Redis / SQS · priority lanes · retry · dead letter</text>
+          </g>
+          <g class="node-g" onclick="showDetail('object-storage')">
+            <rect x="328" y="96" width="296" height="66" rx="8" fill="#d4e2f4" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="476" y="120" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#1a3d6b" font-weight="500">OBJECT STORAGE</text>
+            <text x="476" y="150" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#1a3d6b">S3 / GCS · raw plans · IFC outputs · versioned</text>
+          </g>
+          <line x1="164" y1="162" x2="164" y2="186" stroke="#85b7eb" stroke-width="1" marker-end="url(#arr3)" fill="none"/>
+          <!-- GPU cluster -->
+          <rect x="16" y="186" width="608" height="140" rx="10" fill="#e8e4f8" stroke="#afa9ec" stroke-width="0.5"/>
+          <text x="32" y="208" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" letter-spacing="1" font-weight="500">GPU INFERENCE CLUSTER (AWS / GCP)</text>
+          <g class="node-g" onclick="showDetail('cv-workers')">
+            <rect x="30" y="218" width="174" height="90" rx="6" fill="#f5f2ec" stroke="#afa9ec" stroke-width="0.5"/>
+            <text x="117" y="242" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" font-weight="500">CV WORKERS</text>
+            <text x="117" y="262" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#3b2f7a">Docker · PyTorch</text>
+            <text x="117" y="278" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#3b2f7a">CUDA · GPU auto-scale</text>
+            <text x="117" y="296" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#7f77dd">g4dn / A100 instances</text>
+          </g>
+          <g class="node-g" onclick="showDetail('geometry-svc')">
+            <rect x="228" y="218" width="196" height="90" rx="6" fill="#f5f2ec" stroke="#afa9ec" stroke-width="0.5"/>
+            <text x="326" y="242" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" font-weight="500">GEOMETRY SERVICE</text>
+            <text x="326" y="262" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#3b2f7a">Python · IfcOpenShell</text>
+            <text x="326" y="278" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#3b2f7a">FastAPI · Shapely</text>
+            <text x="326" y="296" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#7f77dd">CPU-optimised pods</text>
+          </g>
+          <g class="node-g" onclick="showDetail('qa-service')">
+            <rect x="448" y="218" width="160" height="90" rx="6" fill="#f5f2ec" stroke="#afa9ec" stroke-width="0.5"/>
+            <text x="528" y="242" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#3b2f7a" font-weight="500">QA SERVICE</text>
+            <text x="528" y="262" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#3b2f7a">Rust · topology rules</text>
+            <text x="528" y="278" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#3b2f7a">Collision engine</text>
+            <text x="528" y="296" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="10" fill="#7f77dd">sub-100ms validation</text>
+          </g>
+          <line x1="320" y1="326" x2="320" y2="350" stroke="#afa9ec" stroke-width="1" marker-end="url(#arr3)" fill="none"/>
+          <g class="node-g" onclick="showDetail('project-db')">
+            <rect x="16" y="350" width="296" height="66" rx="8" fill="#ede9df" stroke="#d4cfc4" stroke-width="0.5"/>
+            <text x="164" y="374" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#6b6860" font-weight="500">PROJECT DATABASE</text>
+            <text x="164" y="398" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#6b6860">PostgreSQL · projects · elements · audit trail</text>
+          </g>
+          <g class="node-g" onclick="showDetail('correction-store')">
+            <rect x="328" y="350" width="296" height="66" rx="8" fill="#d4ede7" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="476" y="374" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" font-weight="500">CORRECTION STORE</text>
+            <text x="476" y="398" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d5c47">Delta log · label store · confidence scores</text>
+          </g>
+          <line x1="476" y1="416" x2="476" y2="440" stroke="#5dcaa5" stroke-width="1" marker-end="url(#arr3)" fill="none"/>
+          <line x1="164" y1="416" x2="164" y2="440" stroke="#d4cfc4" stroke-width="1" marker-end="url(#arr3)" fill="none"/>
+          <g class="node-g" onclick="showDetail('ml-flywheel')">
+            <rect x="16" y="440" width="608" height="76" rx="8" fill="#d4ede7" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="320" y="464" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" fill="#0d5c47" letter-spacing="1" font-weight="500">ML TRAINING FLYWHEEL</text>
+            <text x="320" y="498" text-anchor="middle" font-family="'DM Sans',sans-serif" font-size="12" fill="#0d5c47">Periodic fine-tune · accuracy regression tests · model registry · A/B shadow deploy</text>
+          </g>
+          <path d="M16 478 L4 478 L4 260 L16 260" fill="none" stroke="#5dcaa5" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr3)"/>
+          <text x="2" y="372" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#0d5c47" transform="rotate(-90 2 372)">↻ model update</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-placeholder" id="detailPlaceholder">
+        <div class="dp-icon">[ ]</div>
+        <p>Click any node in the diagram to see detailed specs, tech stack, and design rationale.</p>
+      </div>
+      <div id="detailContent" style="display:none">
+        <div class="detail-header">
+          <div class="detail-eyebrow" id="dEyebrow"></div>
+          <div class="detail-title" id="dTitle"></div>
+        </div>
+        <div class="detail-body">
+          <div class="detail-desc" id="dDesc"></div>
+          <div id="dInputBlock"></div>
+          <div id="dOutputBlock"></div>
+          <div id="dStackBlock"></div>
+          <div id="dWhyBlock"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 4 — STRATEGY
+═══════════════════════════════════════════════ -->
+<div class="tab-page" id="tab-strategy">
+<div class="wrap">
+  <div class="eyebrow fade fd1">Go-to-market</div>
+  <h2 class="fade fd2">Wedge, then expand</h2>
+  <p class="lead fade fd3">Start deep in residential. Own that wedge before expanding to commercial, MEP, or structural.</p>
+
+  <div class="why-grid" style="margin-bottom:52px">
+    <div class="why-card">
+      <div class="why-n">Segment 1</div>
+      <div class="why-title">Residential developers</div>
+      <div class="why-desc">Rapid feasibility and design iteration. Converting plans to BIM enables faster quantity take-offs and cost estimates. Large developers often have thousands of legacy 2D plans needing BIM.</div>
+      <div class="why-big">Primary<span>First target segment</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">Segment 2</div>
+      <div class="why-title">Boutique architects</div>
+      <div class="why-desc">Speed to produce a "volumetric" BIM for spatial planning and clash detection. Our tool automates the initial model, letting architects focus on design rather than drafting.</div>
+      <div class="why-big">Primary<span>Early adopter segment</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">Segment 3</div>
+      <div class="why-title">Renovation contractors</div>
+      <div class="why-desc">As-built floorplans exist only on paper or PDF for millions of buildings. Being able to scan a plan and get a BIM cuts drafting costs dramatically for the retrofit market.</div>
+      <div class="why-big">Secondary<span>Scanned plans beachhead</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">Segment 4</div>
+      <div class="why-title">Prefab manufacturers</div>
+      <div class="why-desc">Need precise digital models to drive off-site production. If developers provide 2D layouts, our tool generates the BIM that drives factory output — linking design to manufacturing.</div>
+      <div class="why-big">Secondary<span>IFC data pipeline</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">Pricing</div>
+      <div class="why-title">SaaS + pay-per-model</div>
+      <div class="why-desc">Free tier (3 models) to drive adoption. Pro subscription per seat per month. Enterprise licensing for volume. First 3 models free keeps the funnel open for early adopters.</div>
+      <div class="why-big">Freemium<span>Free → Pro → Enterprise</span></div>
+    </div>
+    <div class="why-card">
+      <div class="why-n">Channels</div>
+      <div class="why-title">AEC events + Revit store</div>
+      <div class="why-desc">Direct sales via website. AEC conferences (ConExpo, AIA, Greenbuild). Revit App Store for plugin distribution. LinkedIn targeting architects and contractors. buildingSMART partnership for standards credibility.</div>
+      <div class="why-big">Multi<span>Direct + marketplace + events</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="eyebrow">Risks + mitigation</div>
+  <h2>Known risks, concrete mitigations</h2>
+  <p class="lead">Every risk has a playbook. None are dealbreakers if addressed proactively.</p>
+
+  <table class="ctable">
+    <thead>
+      <tr><th>Risk</th><th>Type</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>AI accuracy falls short on noisy plans</td><td>Technical</td><td>Human-in-loop editor + iterative fine-tuning. Start with clean single-story plans, expand complexity over time.</td></tr>
+      <tr><td>Insufficient annotated training data</td><td>Data</td><td>Leverage public datasets (Semantic FloorPlan), crowdsource labeling, partner with firms for real CAD plans + BIM pairs.</td></tr>
+      <tr><td>Incumbents or funded startups emerge</td><td>Market</td><td>Build IFC compliance moat + correction flywheel early. Focus residential segments big players ignore.</td></tr>
+      <tr><td>AEC industry conservative, low adoption</td><td>Adoption</td><td>Emphasize transparency (show model, allow edits). Target early adopters. Pilot success stories build credibility.</td></tr>
+      <tr><td>IP / privacy concerns on uploaded plans</td><td>Legal</td><td>Clear ToS: user owns uploaded plans. Data secured + deleted on request. GDPR-compliant hosting.</td></tr>
+      <tr><td>IFC schema changes or version fragmentation</td><td>Technical</td><td>Maintain IFC 2x3 + IFC 4 support. Track buildingSMART releases. Abstract schema layer in codebase.</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 5 — TEAM & ROADMAP
+═══════════════════════════════════════════════ -->
+<div class="tab-page" id="tab-team">
+<div class="wrap">
+  <div class="eyebrow fade fd1">Core team</div>
+  <h2 class="fade fd2">Six to eight people to start</h2>
+  <p class="lead fade fd3">A deliberately small, multidisciplinary founding team. Every role ships product — no overhead until traction is proven.</p>
+
+  <div class="team-grid" style="margin-bottom:56px">
+    <div class="team-card">
+      <div class="team-role">Engineering</div>
+      <div class="team-title">CV / ML engineers ×2</div>
+      <div class="team-desc">Train and maintain wall/opening/room detection models. Own the scene graph and height inference subsystems. PyTorch, CUDA, model registry.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Engineering</div>
+      <div class="team-title">Backend engineer</div>
+      <div class="team-desc">Pipeline infrastructure, IFC export, API design, job queue, object storage integration. Python + Rust for the QA validation service.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Engineering</div>
+      <div class="team-title">Frontend engineer</div>
+      <div class="team-desc">2D/3D editor canvas, upload flow, project dashboard. Three.js, React, WebGL. The editor is a core product differentiator — not an afterthought.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Domain</div>
+      <div class="team-title">BIM / IFC specialist</div>
+      <div class="team-desc">Guides IFC schema mapping, wall type classification, MEP placeholder logic, and buildingSMART compliance. The expert that keeps output construction-grade.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Product</div>
+      <div class="team-title">Product manager</div>
+      <div class="team-desc">Owns requirements, pilot relationships, and milestone gates. Bridges ML accuracy metrics and user needs. AEC domain knowledge a strong plus.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-role">Growth</div>
+      <div class="team-title">Sales / partnerships</div>
+      <div class="team-desc">AEC channel relationships, conference presence (AIA, ConExpo), pilot deal sourcing. Joins after MVP — compensated partly on pilot conversion.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="eyebrow">Roadmap</div>
+  <h2>12–18 month plan</h2>
+  <p class="lead">Four quarterly phases, each with a clear milestone gate. No phase starts until the previous one is validated.</p>
+
+  <div class="rm-grid">
+    <div class="rm-phase">
+      <div class="rm-label">Months 0–3</div>
+      <div class="rm-title">R&D + prototype</div>
+      <ul class="rm-list">
+        <li>Assemble floorplan + BIM datasets</li>
+        <li>Train wall / door / window detector</li>
+        <li>Build preprocessing pipeline</li>
+        <li>Simple 3D extruder prototype</li>
+        <li>Test on 50+ sample plans</li>
+      </ul>
+    </div>
+    <div class="rm-phase">
+      <div class="rm-label">Months 4–6</div>
+      <div class="rm-title">MVP v0.1</div>
+      <ul class="rm-list">
+        <li>End-to-end pipeline assembled</li>
+        <li>IFC writer (IfcOpenShell)</li>
+        <li>Basic web UI upload + export</li>
+        <li>Single-story house export live</li>
+        <li>5 pilot testers recruited</li>
+      </ul>
+    </div>
+    <div class="rm-phase">
+      <div class="rm-label">Months 7–12</div>
+      <div class="rm-title">Pilot + refinement</div>
+      <ul class="rm-list">
+        <li>Multi-floor + stair support</li>
+        <li>Human-in-loop editor live</li>
+        <li>QA validation engine (Rust)</li>
+        <li>Revit API integration</li>
+        <li>First paying pilot customers</li>
+      </ul>
+    </div>
+    <div class="rm-phase">
+      <div class="rm-label">Months 13–18</div>
+      <div class="rm-title">v1.0 launch</div>
+      <ul class="rm-list">
+        <li>Beta to wider audience</li>
+        <li>Pricing + packaging finalized</li>
+        <li>Enterprise client onboarding</li>
+        <li>Training flywheel running</li>
+        <li>Seed round or Series A</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="cta-strip">
+  <h2>Let's build this together</h2>
+  <p>Pilot access, investment conversations, or partnerships — we want to hear from you.</p>
+  <a href="mailto:hello@floorbim.ai" class="btn-inv">Get in touch</a>
+  <button class="btn-out" onclick="switchTab('architecture')">View architecture</button>
+</div>
+</div>
+
+<footer>
+  <span>FLOORBIM · 2D→3D BIM for residential</span>
+  <span>IFC 4 · ISO 16739 · buildingSMART</span>
+  <span>© 2026</span>
+</footer>
+
+<script>
+// ─── TAB SWITCHING ───
+function switchTab(id) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelector('[data-tab="' + id + '"]').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ─── DIAGRAM SWITCHING ───
+function switchDiag(id) {
+  document.querySelectorAll('.diag-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.diag-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('diag-' + id).classList.add('active');
+  event.target.classList.add('active');
+  hideDetail();
+}
+
+// ─── NODE DETAIL DATA ───
+const details = {
+  client: {
+    eyebrow: 'Entry point',
+    title: 'Client layer',
+    desc: 'The surface through which users and integrations interact with the FloorBIM platform. Three distinct entry points serve different buyer personas.',
+    inputs: ['PDF, JPEG, PNG, DWG files', 'API key + JWT token', 'Revit plugin: active model'],
+    outputs: ['Job ID + status endpoint', 'Webhook on completion', 'IFC / RVT file stream'],
+    stack: ['React web app', 'REST API (FastAPI)', 'Revit plugin (C# / .NET)', 'Multipart upload'],
+    why: 'Three entry points because residential developers use web, architects prefer Revit, and contractors need API integration with their project management tools.'
+  },
+  s1: {
+    eyebrow: 'Stage 1 — Differentiator',
+    title: 'Ingestion pre-processor',
+    desc: 'The stage where raw, messy inputs are converted into normalized, analysis-ready data. This is where most competitors quietly fail — they only accept clean PDFs.',
+    inputs: ['PDF (single/multi-page)', 'JPEG / PNG (any DPI)', 'DWG / DXF native vector', 'Scanned or hand-drawn plans'],
+    outputs: ['Normalized raster image', 'Detected scale (px/m)', 'Orientation metadata', 'Quality confidence score'],
+    stack: ['OpenCV (deskew, contrast)', 'pdf2image (PDF raster)', 'ezdxf (DWG parsing)', 'FastAPI upload service', 'S3/GCS object store'],
+    why: 'Supporting DWG natively and handling scanned plans unlocks the renovation/as-built market — a segment nobody else serves. Scale detection without user input removes the #1 friction point in competing tools.'
+  },
+  s2: {
+    eyebrow: 'Stage 2 — Core ML',
+    title: 'Semantic detection engine',
+    desc: 'The heart of the AI pipeline. Instead of just detecting shapes, this stage builds a structured semantic model of the plan — walls with types, openings with swing directions, rooms with adjacency relationships.',
+    inputs: ['Normalized raster image', 'Detected scale metadata', 'Optional DWG layer names'],
+    outputs: ['Typed wall polygons', 'Door/window elements', 'Room boundary polygons', 'Scene graph JSON'],
+    stack: ['PyTorch (training + inference)', 'Mask R-CNN (wall/opening detection)', 'DETR (opening classification)', 'SegFormer (room segmentation)', 'NetworkX (scene graph)'],
+    why: 'The scene graph is the structural advantage. Knowing that Room A and Room B share a load-bearing wall enables downstream clash detection, scheduling, and quantity take-offs that flat mesh tools cannot support.'
+  },
+  s3: {
+    eyebrow: 'Stage 3 — Differentiator',
+    title: 'Height + geometry inference',
+    desc: 'The step that converts 2D semantics into a true 3D skeleton. Every competitor either asks the user to input heights manually or silently defaults to 2.4m for everything.',
+    inputs: ['Scene graph JSON', 'Wall segment data', 'Story count (auto or user)', 'Regional code defaults'],
+    outputs: ['Wall extrusions with heights', 'Slab polygons per story', 'Door/window Z-bounds', 'Stair geometry placeholders', 'Per-element confidence scores'],
+    stack: ['Shapely (polygon ops)', 'CGAL Python bindings (3D geometry)', 'Height lookup table (per region/code)', 'Topology analyser (custom Python)'],
+    why: 'Residential buildings follow predictable height norms by region and building code. Auto-inferring from topology — with easy override — saves 15–30 minutes of manual input per project and eliminates a major accuracy error source.'
+  },
+  s4: {
+    eyebrow: 'Stage 4 — Core moat',
+    title: 'IFC schema mapper',
+    desc: 'The stage that converts 3D geometry into a properly typed, standards-compliant IFC file. This is what separates a "3D model" from a "BIM model" that professionals can actually use.',
+    inputs: ['3D geometry skeleton', 'Room + slab volumes', 'Door/window element data', 'User wall type properties'],
+    outputs: ['IFC 4 file (ISO 16739)', 'Revit RVT export', 'DXF / SketchUp file', 'OBJ / FBX for rendering', 'Quantity take-off CSV'],
+    stack: ['IfcOpenShell (IFC read/write)', 'Revit API (RVT export)', 'ISO 16739 classification rules', 'Speckle (format conversion)'],
+    why: 'Proper IFC typing (IfcWallStandardCase, correct relationship sets, coordinate systems) means the output drops cleanly into Revit or ArchiCAD without reclassification work. That single fact justifies the price premium over consumer tools.'
+  },
+  s5: {
+    eyebrow: 'Stage 5 — Differentiator',
+    title: 'QA validation engine',
+    desc: 'A geometry error in the IFC model will silently break every downstream process — clash detection, scheduling, cost estimation. No competitor validates before export. We do.',
+    inputs: ['IFC model draft', 'All element geometries', 'Room boundary loops', 'Multi-story stacked geometry'],
+    outputs: ['Pass/fail per rule', 'Flagged issues with element IDs', 'Visual overlay on 2D plan', 'Severity: critical vs warning', 'Auto-fix suggestions where possible'],
+    stack: ['Rust (performance-critical validation)', 'Custom topology rules engine', 'IFC geometry validator', 'Sub-100ms per typical residential plan'],
+    why: 'Written in Rust because topology validation on complex IFC geometry is CPU-intensive. Python would be too slow at scale — 500ms+ per model vs sub-100ms in Rust. Speed matters because this runs on every export, not just on demand.'
+  },
+  s6: {
+    eyebrow: 'Stage 6 — Data flywheel',
+    title: 'Human-in-the-loop editor',
+    desc: 'The stage that makes this a software business, not a services business. Every correction a professional makes improves the model — compounding accuracy and building a training data moat that is nearly impossible to replicate.',
+    inputs: ['AI-generated BIM draft', 'QA flagged issues list', 'Original 2D plan overlay', 'Confidence score per element'],
+    outputs: ['Expert-verified IFC model', 'Correction delta → training store', 'Accuracy metric per project', 'Audit trail for every change'],
+    stack: ['Three.js (3D canvas)', 'React + WebGL (2D/3D split view)', 'Correction logger → PostgreSQL', 'Delta feed → ML training pipeline'],
+    why: 'The correction loop feeds Stage 2 (detection), not Stage 1. Pre-processing is deterministic. Detection is learned. Every expert correction is a labeled training example — the product gets measurably better every week.'
+  },
+  'wall-detector': {
+    eyebrow: 'CV Subsystem',
+    title: 'Wall detector',
+    desc: 'Detects wall segments from the normalized plan image using instance segmentation. Outputs wall polygons with thickness and a load-bearing probability score.',
+    inputs: ['Normalized raster image (512×512 tiles)', 'Scale metadata'],
+    outputs: ['Wall polygon masks', 'Wall thickness estimate', 'Load-bearing probability'],
+    stack: ['ResNet-50 backbone (pretrained ImageNet)', 'Mask R-CNN detection head', 'PyTorch + CUDA', 'Non-max suppression post-processing'],
+    why: 'Mask R-CNN chosen over simpler detectors because wall segments overlap and vary in thickness. Instance segmentation handles overlapping walls at corners far better than bounding-box-only approaches.'
+  },
+  'opening-detector': {
+    eyebrow: 'CV Subsystem',
+    title: 'Opening detector',
+    desc: 'Classifies doors and windows within detected wall regions using a DETR transformer. Assigns type (door/window/opening) and extracts swing direction for doors.',
+    inputs: ['Wall polygon regions (cropped)', 'Full plan context image'],
+    outputs: ['Door bounding boxes + swing arc', 'Window bounding boxes + sill height', 'Opening type class + confidence'],
+    stack: ['DETR (Detection Transformer)', 'Custom classification head (door/window/opening)', 'Swing direction regression branch'],
+    why: 'DETR handles the variable scale and density of door/window symbols better than anchor-based detectors. The transformer attention sees global context, which helps with small windows surrounded by annotation text.'
+  },
+  'room-segmenter': {
+    eyebrow: 'CV Subsystem',
+    title: 'Room segmenter',
+    desc: 'Assigns every pixel in the plan to a room class (bedroom, kitchen, bathroom, living, corridor, unknown) using semantic segmentation, then closes boundaries using flood-fill.',
+    inputs: ['Normalized raster image', 'Wall mask (from wall detector)'],
+    outputs: ['Room polygon per boundary', 'Room type classification', 'Scene graph node list'],
+    stack: ['SegFormer (semantic segmentation)', 'Flood-fill boundary closure algorithm', 'Room type classifier (12 classes)', 'NetworkX graph construction'],
+    why: 'SegFormer outperforms CNN-only architectures for room segmentation because room boundaries depend on large-scale spatial context. The flood-fill closure step handles partially open doorways that would otherwise split rooms incorrectly.'
+  },
+  'graph-builder': {
+    eyebrow: 'Scene Graph',
+    title: 'Graph builder',
+    desc: 'Assembles the detected rooms and walls into a structured scene graph: rooms are nodes, shared walls are edges, and edge attributes encode wall type (load-bearing, partition, external).',
+    inputs: ['Room polygon list', 'Wall segment list', 'Shared boundary detection'],
+    outputs: ['NetworkX graph object', 'Room adjacency matrix', 'Shared wall edge attributes'],
+    stack: ['NetworkX (graph data structure)', 'Shapely (shared boundary detection)', 'Custom edge attribute schema'],
+    why: 'The scene graph is what makes downstream IFC export reliable. Without it, wall segments are just geometry. With it, every wall knows which rooms it separates — enabling correct IfcRelSpaceBoundary relationships in the IFC file.'
+  },
+  'topology-analyser': {
+    eyebrow: 'Scene Graph',
+    title: 'Topology analyser',
+    desc: 'Infers the Z-axis information missing from 2D plans: ceiling heights, story levels, stair delta, and multi-story stacking alignment.',
+    inputs: ['Scene graph', 'Stair polygon detections', 'Regional code database', 'User overrides (optional)'],
+    outputs: ['Per-room ceiling height', 'Story level assignments', 'Stair geometry parameters', 'Multi-story alignment offsets'],
+    stack: ['Height lookup table (by region + building code)', 'Stair geometry solver', 'Story conflict resolution rules', 'User override API'],
+    why: 'Regional building codes constrain ceiling heights to predictable ranges. A UK residential bedroom is almost certainly 2.4–2.6m. Encoding this as a lookup table gives ≥90% accuracy without any user input — a major UX advantage.'
+  },
+  'wall-classifier': {
+    eyebrow: 'Scene Graph',
+    title: 'Wall classifier',
+    desc: 'Assigns structural meaning to each wall segment: load-bearing vs partition, external vs internal, material type (brick, timber frame, concrete block).',
+    inputs: ['Wall segment geometry', 'Scene graph context (room adjacency)', 'Wall thickness estimate'],
+    outputs: ['Load-bearing flag (0–1 probability)', 'Wall material class', 'External/internal flag'],
+    stack: ['Gradient boosted classifier (wall features)', 'Rule engine (thickness thresholds)', 'Material inference heuristics'],
+    why: 'Thickness is the primary signal: walls >200mm are almost always load-bearing in UK residential. The scene graph provides context — external walls are always load-bearing, thin internal partitions rarely are.'
+  },
+  'wall-extruder': {
+    eyebrow: '3D Construction',
+    title: 'Wall extruder',
+    desc: 'Converts 2D wall polygons into 3D solid geometry using the heights from the topology analyser. Outputs IFC-ready extruded area solids.',
+    inputs: ['Wall polygon (2D)', 'Height from topology analyser', 'Wall thickness', 'Opening cutout positions'],
+    outputs: ['IfcExtrudedAreaSolid geometry', 'Door/window openings cut out', 'Wall solid per story level'],
+    stack: ['Shapely (2D polygon ops)', 'CGAL Python bindings (3D Boolean ops)', 'IfcOpenShell geometry writer'],
+    why: 'Boolean subtraction (cutting door/window openings from wall solids) is the technically hard part. CGAL is used because it handles degenerate geometry and floating-point edge cases that Shapely-based approaches fail on in real plans.'
+  },
+  'slab-generator': {
+    eyebrow: '3D Construction',
+    title: 'Slab generator',
+    desc: 'Creates floor and ceiling slabs from room polygons, stacked per story level with correct Z offsets.',
+    inputs: ['Room polygon per story', 'Story level Z offsets', 'Slab thickness defaults'],
+    outputs: ['IfcSlab geometry per room per level', 'Floor + ceiling pair per story', 'Opening holes for stairs'],
+    stack: ['Shapely (room polygon merge)', 'IfcOpenShell (IfcSlab writer)', 'Stair hole cutter'],
+    why: 'Slabs are required for a structurally complete BIM model that passes downstream clash detection. Many conversion tools skip them, producing models that fail validation in Revit.'
+  },
+  'ifc-writer': {
+    eyebrow: '3D Construction',
+    title: 'IFC writer',
+    desc: 'Serialises all geometry, relationships, and metadata into a valid ISO 16739 IFC 4 file. This is the stage that produces the actual deliverable.',
+    inputs: ['Wall solids', 'Slab geometry', 'Door/window elements', 'Scene graph relationships'],
+    outputs: ['IFC 4 .ifc file', 'Revit RVT (via Revit API)', 'DXF export', 'OBJ / FBX for rendering', 'QTO CSV (quantities)'],
+    stack: ['IfcOpenShell 0.7 (IFC read/write)', 'ISO 16739 classification rules', 'Speckle (RVT/DXF conversion)', 'Revit API (native RVT output)'],
+    why: 'IfcOpenShell is the only production-grade open-source IFC library. Native Revit API is used for RVT export rather than conversion, because converted RVT files consistently lose property sets — a dealbreaker for professional workflows.'
+  },
+  'api-gateway': {
+    eyebrow: 'Infrastructure',
+    title: 'API gateway + auth',
+    desc: 'The entry point for all external traffic. Handles authentication, rate limiting, file routing, and job dispatch.',
+    inputs: ['HTTP requests (REST/GraphQL)', 'Multipart file uploads', 'JWT tokens', 'Webhook registrations'],
+    outputs: ['Job IDs', 'Status endpoints', 'Signed upload URLs', 'Webhook events'],
+    stack: ['AWS API Gateway or Kong', 'JWT (RS256)', 'Rate limiting (per-account)', 'Multipart upload → S3 presigned URLs'],
+    why: 'Presigned S3 URLs for uploads means file data never transits the API server — reducing latency and infrastructure cost significantly for large DWG files.'
+  },
+  'job-queue': {
+    eyebrow: 'Infrastructure',
+    title: 'Async job queue',
+    desc: 'Decouples the upload API from the compute workers. Each pipeline stage is a separate queue consumer — enabling independent scaling and retry logic.',
+    inputs: ['Job dispatch from API gateway', 'Stage completion events'],
+    outputs: ['Stage worker triggers', 'Progress events → webhook', 'Dead letter queue for failures'],
+    stack: ['Redis (development)', 'AWS SQS (production)', 'Priority lanes (paid vs free tier)', 'Exponential backoff retry', 'Dead letter queue → alerting'],
+    why: 'Separate queues per pipeline stage means a backlog in the expensive GPU stage (S2) doesn\'t block the cheap pre-processing stage (S1). This matters at scale when GPU capacity is constrained.'
+  },
+  'object-storage': {
+    eyebrow: 'Infrastructure',
+    title: 'Object storage',
+    desc: 'Stores all plan files, intermediate artifacts, and IFC outputs with versioning. The source of truth for every conversion job.',
+    inputs: ['Uploaded plan files', 'Intermediate stage outputs', 'Final IFC/RVT files'],
+    outputs: ['Presigned download URLs', 'Versioned artifact history', 'CDN-cached delivery'],
+    stack: ['AWS S3 or GCS', 'Versioned bucket per customer', 'Lifecycle rules (auto-delete intermediates after 30 days)', 'CDN for output delivery (CloudFront)'],
+    why: 'Versioned storage means every intermediate artifact is preserved — enabling stage-level reruns without re-running the full pipeline. Critical for debugging and model improvement.'
+  },
+  'cv-workers': {
+    eyebrow: 'Infrastructure — GPU',
+    title: 'CV workers',
+    desc: 'GPU-accelerated containers running the ML inference for stages S2 and S3. Auto-scale from zero during idle periods to cut costs.',
+    inputs: ['Pre-processed plan image', 'Stage config + model version'],
+    outputs: ['Detection results JSON', 'Scene graph JSON', 'Inference latency metrics'],
+    stack: ['Docker (containerised)', 'PyTorch 2.x + CUDA 12', 'AWS g4dn or GCP A100 spot instances', 'Kubernetes HPA (auto-scale)', 'Model registry (MLflow)'],
+    why: 'Spot instances reduce GPU compute cost by 60–80% vs on-demand. The queue buffer absorbs the 2–5 minute spot instance startup time — acceptable for non-interactive batch conversion jobs.'
+  },
+  'geometry-svc': {
+    eyebrow: 'Infrastructure — CPU',
+    title: 'Geometry service',
+    desc: 'CPU-optimised pods running the 3D geometry construction for stages S3 and S4. No GPU required — Shapely and CGAL are CPU-bound.',
+    inputs: ['Scene graph JSON', 'Height inference results'],
+    outputs: ['IFC geometry objects', 'Extruded wall solids', 'Slab geometry'],
+    stack: ['Python 3.11', 'IfcOpenShell 0.7', 'Shapely 2.x', 'CGAL Python bindings', 'FastAPI microservice'],
+    why: 'Separated from CV workers because CPU and GPU workloads scale differently. Geometry is CPU-bound and memory-intensive. Running it on cheaper CPU pods rather than expensive GPU instances halves the per-job cost.'
+  },
+  'qa-service': {
+    eyebrow: 'Infrastructure — Rust',
+    title: 'QA service',
+    desc: 'A Rust microservice that performs all geometry validation checks on the draft IFC model before export. Sub-100ms on typical residential plans.',
+    inputs: ['Draft IFC model', 'Element relationship graph', 'Validation rule config'],
+    outputs: ['Validation report JSON', 'Issue list with element IDs', 'Auto-fix patches (where possible)'],
+    stack: ['Rust (actix-web server)', 'Custom topology rules engine', 'IFC geometry reader (Rust native)', 'JSON issue report format'],
+    why: 'Written in Rust because topology validation — checking every door swing against every adjacent wall, every room loop for closure — involves O(n²) geometric operations. Python was 8–12x slower in benchmarks, unacceptable at scale.'
+  },
+  'project-db': {
+    eyebrow: 'Data Layer',
+    title: 'Project database',
+    desc: 'The relational source of truth for all project metadata, element data, and the complete audit trail of every conversion job.',
+    inputs: ['Job completion events', 'Element metadata', 'User corrections', 'Export events'],
+    outputs: ['Project history API', 'Element query API', 'Audit log export', 'Analytics events'],
+    stack: ['PostgreSQL 16', 'Projects, jobs, elements, corrections tables', 'JSONB for flexible element properties', 'TimescaleDB extension for metrics'],
+    why: 'JSONB columns for element properties because IFC elements have heterogeneous attributes. A fixed relational schema would require schema migrations for every new IFC property set — too brittle for a fast-moving product.'
+  },
+  'correction-store': {
+    eyebrow: 'Data Layer — Flywheel',
+    title: 'Correction store',
+    desc: 'Captures every human correction made in the editor as a labeled training example. The engine of the data flywheel that makes the product get better automatically.',
+    inputs: ['Element delta from editor (before/after)', 'User ID + timestamp', 'Plan file reference', 'Confidence score at time of correction'],
+    outputs: ['Labeled training examples', 'Correction frequency analytics', 'Model retraining triggers', 'Accuracy trend metrics'],
+    stack: ['PostgreSQL corrections table', 'Delta log (JSONB diff)', 'Label quality scoring', 'Batch export to ML training pipeline (nightly)'],
+    why: 'Every expert correction is a high-quality labeled example — more valuable than synthetic data because it represents real-world edge cases. 1000 corrections from 50 professional users is worth more than 10,000 synthetic annotations.'
+  },
+  'ml-flywheel': {
+    eyebrow: 'Data Layer — Flywheel',
+    title: 'ML training flywheel',
+    desc: 'The periodic retraining pipeline that consumes corrections from the correction store and deploys improved model weights to the CV workers. The mechanism that makes accuracy compound over time.',
+    inputs: ['Correction store batch export', 'Existing training dataset', 'Current model weights (baseline)'],
+    outputs: ['Fine-tuned model weights', 'Accuracy regression report', 'A/B shadow deployment', 'New model version in registry'],
+    stack: ['MLflow (experiment tracking + model registry)', 'PyTorch fine-tuning pipeline', 'Accuracy regression test suite (held-out plans)', 'A/B shadow deploy (5% traffic to new model)', 'Rollback on regression detection'],
+    why: 'Shadow deployment is critical — new model weights only get promoted to 100% traffic after passing accuracy regression tests on a held-out validation set. This prevents a bad batch of corrections from degrading the production model.'
+  }
+};
+
+function showDetail(key) {
+  const d = details[key];
+  if (!d) return;
+  document.getElementById('detailPlaceholder').style.display = 'none';
+  document.getElementById('detailContent').style.display = 'block';
+  document.getElementById('dEyebrow').textContent = d.eyebrow || '';
+  document.getElementById('dTitle').textContent = d.title || '';
+  document.getElementById('dDesc').textContent = d.desc || '';
+
+  function makeBlock(id, label, items) {
+    const el = document.getElementById(id);
+    if (items && items.length) {
+      el.innerHTML = '<div class="detail-section-label">' + label + '</div><ul class="detail-items">' +
+        items.map(i => '<li>' + i + '</li>').join('') + '</ul>';
+    } else { el.innerHTML = ''; }
+  }
+  makeBlock('dInputBlock', 'Inputs', d.inputs);
+  makeBlock('dOutputBlock', 'Outputs', d.outputs);
+
+  const st = document.getElementById('dStackBlock');
+  if (d.stack && d.stack.length) {
+    st.innerHTML = '<div class="detail-section-label">Tech stack</div><div class="detail-chips">' +
+      d.stack.map(s => '<span class="chip">' + s + '</span>').join('') + '</div>';
+  } else { st.innerHTML = ''; }
+
+  const wy = document.getElementById('dWhyBlock');
+  if (d.why) {
+    wy.innerHTML = '<div class="detail-section-label">Why this choice</div><div class="detail-desc" style="margin-top:6px">' + d.why + '</div>';
+  } else { wy.innerHTML = ''; }
+}
+
+function hideDetail() {
+  document.getElementById('detailPlaceholder').style.display = 'block';
+  document.getElementById('detailContent').style.display = 'none';
+}
+
+// ─── SCROLL REVEAL ───
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.why-card,.pipe-step,.team-card,.rm-phase').forEach(el => {
+  el.style.opacity='0'; el.style.transform='translateY(14px)';
+  el.style.transition='opacity .45s ease, transform .45s ease';
+  obs.observe(el);
+});
+</script>
+</body>
+</html>
