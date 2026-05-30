@@ -401,6 +401,12 @@ footer{padding:36px 48px;display:flex;justify-content:space-between;align-items:
   .detail-panel{position:static}
   footer{flex-direction:column;gap:8px;text-align:center}
 }
+
+/* ─── FILM TAB ─── */
+.film-embed-wrap{max-width:1160px;margin:0 auto;padding:0 48px 100px}
+.film-embed-frame{width:100%;aspect-ratio:16/9;background:#0f0e0c;border:1px solid var(--rule);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.22)}
+.film-embed-frame iframe{width:100%;height:100%;border:0;display:block}
+@media(max-width:900px){.film-embed-wrap{padding:0 16px 80px}}
 </style>
 </head>
 <body>
@@ -414,11 +420,33 @@ footer{padding:36px 48px;display:flex;justify-content:space-between;align-items:
 <!-- TAB BAR -->
 <div class="tab-bar" id="tabBar">
   <button class="tab-btn active" data-tab="vision" onclick="switchTab('vision')"><span class="tab-num">01</span>Vision</button>
+  <button class="tab-btn" data-tab="film" onclick="switchTab('film')"><span class="tab-num">01b</span>Film</button>
   <button class="tab-btn" data-tab="pipeline" onclick="switchTab('pipeline')"><span class="tab-num">02</span>Pipeline</button>
   <button class="tab-btn" data-tab="mockups" onclick="switchTab('mockups')"><span class="tab-num">02b</span>Mockups</button>
   <button class="tab-btn" data-tab="architecture" onclick="switchTab('architecture')"><span class="tab-num">03</span>Architecture</button>
   <button class="tab-btn" data-tab="strategy" onclick="switchTab('strategy')"><span class="tab-num">04</span>Strategy</button>
   <button class="tab-btn" data-tab="team" onclick="switchTab('team')"><span class="tab-num">05</span>Team & Roadmap</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1B — FILM
+═══════════════════════════════════════════════ -->
+<div class="tab-page" id="tab-film">
+<div class="film-embed-wrap">
+  <div class="eyebrow fade fd1">Product film</div>
+  <h2 class="fade fd2">Watch FloorBIM turn a 2D plan into BIM</h2>
+  <p class="lead fade fd3">A short narrated film showing the end-to-end transformation from floorplan ingestion to construction-grade BIM output.</p>
+
+  <div class="film-embed-frame">
+    <iframe
+      src="./floorbim-film-player.html"
+      title="FloorBIM product film"
+      allow="autoplay; fullscreen"
+      allowfullscreen
+      loading="lazy">
+    </iframe>
+  </div>
+</div>
 </div>
 
 <!-- ═══════════════════════════════════════════════
